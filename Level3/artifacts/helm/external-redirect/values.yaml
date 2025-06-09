@@ -1,0 +1,9 @@
+name: elasticsearch
+address: 10.40.20.103
+ports:
+ - name: http
+   port: 80
+   targetPort: 80
+ - name: https
+   port: 443
+   targetPort: 443

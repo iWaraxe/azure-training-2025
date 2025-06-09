@@ -1,0 +1,14 @@
+{{- $address := .Values.address -}}
+{{- $name := .Values.name -}}
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: {{ $name }}
+subsets:
+  - addresses:
+      - ip: {{ $address }}
+    ports:
+{{- range .Values.ports }}
+      - name:  {{ .name }}
+        port: {{ .port }}
+{{- end }}

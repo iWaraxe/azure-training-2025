@@ -1,0 +1,120 @@
+kind: Deployment
+apiVersion: apps/v1 # add missed block
+metadata:
+  name: mars
+  namespace: development
+  labels:
+    app: mars 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mars 
+  template:
+    metadata:
+      labels:
+        app: mars 
+    spec:
+      imagePullSecrets:
+      - name: acr-docker # ACR secret name (READ NOTES BELOW!)
+      containers:
+      - name: mars 
+        image: nechtraincontainerregistry.azurecr.io/linux/app:latest
+        # command: ["sleep"]
+        # args: ["10000"]
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - mountPath: "/mnt/logs"
+          name: volume
+        - name: app-config
+          mountPath: "/usr/src/app/config"
+          readOnly: true
+      volumes:
+        - name: volume
+          persistentVolumeClaim:
+            claimName: mars-logs
+        # You set volumes at the Pod level, then mount them into containers inside that Pod
+        - name: app-config
+          configMap:
+            # Provide the name of the ConfigMap you want to mount.
+            name: mars-config-file
+            # An array of keys from the ConfigMap to create as files
+            items:
+            - key: "mars.config"
+              path: "mars.config"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mars
+  namespace: "development"
+spec:
+  selector:
+    app: mars
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000
+---
+apiVersion: "v1"
+kind: Pod
+metadata:
+  name: redis
+  namespace: "development"
+  labels:
+    name: redis
+    app: demo
+spec:
+  containers:
+    - name: redis
+      image: redis:latest
+      ports:
+        - containerPort: 6379         
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: "development"
+  labels:
+    name: redis
+    app: demo  
+spec:
+  ports:
+  - port: 6379
+    name: redis
+    targetPort: 6379
+  selector:
+    name: redis
+    app: demo
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mars-logs
+  namespace: development
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: managed-premium
+  resources:
+    requests:
+      storage: 5Gi
+  
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mars-config-file
+  namespace: development
+data:
+  # file-like keys
+  mars.config: |
+    [config]
+    server_address=0.0.0.0
+    redis_address=redis
+      

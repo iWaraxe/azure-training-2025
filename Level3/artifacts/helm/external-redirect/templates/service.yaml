@@ -1,0 +1,12 @@
+{{- $name := .Values.name -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+spec:
+  ports:
+{{- range .Values.ports }}
+    - name:  {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+{{- end }}

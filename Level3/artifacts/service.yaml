@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: isdemolb
+  namespace: development
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9380
+#  clusterIP: 10.0.171.239
+  type: LoadBalancer
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: isdemoclusterip
+  namespace: "development"
+spec:
+  ports:
+    - port: 80
+  type: ClusterIP
+  selector:
+    app: "nginx-plus"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: isdemo
+  namespace: "development"
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9376
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: isdemomultiport
+  namespace: "development"
+spec:
+  selector:
+    app: nginx
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9376
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      nodePort: 30051
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 9377
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      nodePort: 30024

@@ -1,0 +1,140 @@
+# Modern Pod Security Standards - Replaces deprecated PodSecurityPolicy
+# https://kubernetes.io/docs/concepts/security/pod-security-standards/
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-workload
+  labels:
+    # Pod Security Standards labels for namespace-level enforcement
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    
+    # Alternative: Use baseline for less restrictive requirements
+    # pod-security.kubernetes.io/enforce: baseline
+    # pod-security.kubernetes.io/audit: baseline
+    # pod-security.kubernetes.io/warn: baseline
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: privileged-workload
+  labels:
+    # For system workloads that need privileged access
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Example of a pod that complies with restricted security standards
+apiVersion: v1
+kind: Pod
+metadata:
+  name: restricted-pod
+  namespace: secure-workload
+  labels:
+    app: secure-demo
+spec:
+  securityContext:
+    # Required for restricted standard
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    image: nginx:1.25-alpine
+    ports:
+    - containerPort: 8080
+    env:
+    - name: NGINX_PORT
+      value: "8080"
+    securityContext:
+      # Required for restricted standard
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+        - ALL
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: var-cache
+      mountPath: /var/cache/nginx
+    - name: var-run
+      mountPath: /var/run
+  volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: var-cache
+    emptyDir: {}
+  - name: var-run
+    emptyDir: {}
+
+---
+# NetworkPolicy for additional security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: secure-workload
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow HTTPS to external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Example ResourceQuota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: secure-workload
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "10"
+    pods: "20"
+
+---
+# LimitRange for default resource constraints
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limit-range
+  namespace: secure-workload
+spec:
+  limits:
+  - default:
+      memory: "512Mi"
+      cpu: "500m"
+    defaultRequest:
+      memory: "256Mi"
+      cpu: "100m"
+    type: Container
