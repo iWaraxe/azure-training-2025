@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ .Values.application }}-deployment"
+  namespace: {{ .Values.default }}
+  labels:
+    app: {{ .Values.favorite.drink | default "tea" | quote }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ $applicationName }}
+...
+        {{- if eq $settings.healthcheck.enable "yes"}}
+        readinessProbe:                
+          httpGet:
+            scheme: {{ $settings.healthcheck.scheme }}
+            path: "{{ $settings.healthcheck.path }}"
+            port: {{ $settings.healthcheck.port }}
+          {{- if ne $settings.healthcheck.host "-"}}
+            host: "{{ $settings.healthcheck.host }}"
+          {{- end }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 10
+          timeoutSeconds: 10
+         {{- end }}
+...
+{{- end }}
+---

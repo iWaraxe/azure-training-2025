@@ -1,0 +1,80 @@
+# Azure Training Level 2 - PaaS Configuration
+# Copy this file to terraform.tfvars and update with your values
+
+###########################################################################
+#   Main Configuration
+###########################################################################
+resource_group_name = "ep-wep24"
+location = "westeurope"
+
+###########################################################################
+#   Azure SQL Server Configuration
+#   Note: Use strong passwords and consider using Key Vault for production
+###########################################################################
+azure_sql_server = {
+  admin_login    = "sqladmin"
+  admin_password = "YourStrong@Password123!"
+}
+
+# Optional: Azure AD Admin for SQL Server (recommended for production)
+azure_sql_admin = {
+  login_username = "your-admin@yourdomain.com"
+  object_id      = "12345678-1234-1234-1234-123456789012"
+  tenant_id      = "87654321-4321-4321-4321-210987654321"
+}
+
+###########################################################################
+#   Traffic Manager Configuration
+###########################################################################
+# Primary endpoint should be your VM endpoint from Level 1
+primary_endpoint_fqdn = "your-vm-public-ip.cloudapp.azure.com"
+
+###########################################################################
+#   Environment-Specific Configuration
+###########################################################################
+environment_config = {
+  app_service_sku   = "P1v3"  # Premium v3 for better performance
+  sql_sku_name      = "S2"    # Standard 50 DTU for development
+  enable_backup     = true
+  enable_monitoring = true
+}
+
+###########################################################################
+#   Security Configuration
+###########################################################################
+security_config = {
+  enable_private_endpoints = false  # Set to true for production
+  enable_waf              = false   # Set to true for production
+  allowed_ip_ranges       = [
+    # Add your IP ranges here for SQL Server access
+    # "203.0.113.0/24"
+  ]
+}
+
+###########################################################################
+#   Monitoring Configuration  
+###########################################################################
+monitoring_config = {
+  log_retention_days    = 30
+  enable_diagnostics    = true
+  alert_email_addresses = [
+    # Add email addresses for alerts
+    # "admin@yourdomain.com"
+  ]
+}
+
+###########################################################################
+#   DEPRECATED: Legacy Provider Configuration
+#   Use environment variables instead:
+#   export ARM_SUBSCRIPTION_ID="your-subscription-id"
+#   export ARM_CLIENT_ID="your-client-id"  
+#   export ARM_CLIENT_SECRET="your-client-secret"
+#   export ARM_TENANT_ID="your-tenant-id"
+###########################################################################
+
+# provider_default = {
+#   subscription_id = "your-subscription-id"
+#   client_id       = "your-client-id"
+#   client_secret   = "your-client-secret"
+#   tenant_id       = "your-tenant-id"
+# }

@@ -1,0 +1,91 @@
+#cloud-config
+package_upgrade: true
+packages:
+  - curl
+  - gnupg
+  - lsb-release
+  - ca-certificates
+  - software-properties-common
+
+write_files:
+  - path: /etc/systemd/system/jenkins.service
+    content: |
+      [Unit]
+      Description=Jenkins Automation Server
+      After=network.target
+      
+      [Service]
+      Type=notify
+      NotifyAccess=main
+      ExecStart=/usr/bin/jenkins
+      Restart=on-failure
+      SuccessExitStatus=143
+      
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # Add Jenkins repository key
+  - curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+  
+  # Add Jenkins repository
+  - echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+  
+  # Update package list
+  - apt-get update
+  
+  # Install Java 11 (required for Jenkins)
+  - apt-get install -y openjdk-11-jdk
+  
+  # Install Jenkins
+  - apt-get install -y jenkins
+  
+  # Create Jenkins data directory on data disk
+  - mkdir -p /mnt/jenkins
+  - chown jenkins:jenkins /mnt/jenkins
+  
+  # Mount data disk (assuming it's /dev/sdc)
+  - |
+    DEVICE=$(ls /dev/disk/azure/scsi1/lun10 -la | awk '{print $NF}' | awk -F'/' '{print "/dev/"$NF}')
+    if [ -n "$DEVICE" ]; then
+      mkfs.ext4 $DEVICE
+      echo "$DEVICE /mnt/jenkins ext4 defaults,nofail 0 2" >> /etc/fstab
+      mount -a
+      chown jenkins:jenkins /mnt/jenkins
+    fi
+  
+  # Configure Jenkins to use data disk
+  - |
+    if [ -d /mnt/jenkins ]; then
+      systemctl stop jenkins
+      mv /var/lib/jenkins/* /mnt/jenkins/ 2>/dev/null || true
+      rm -rf /var/lib/jenkins
+      ln -s /mnt/jenkins /var/lib/jenkins
+      chown -R jenkins:jenkins /mnt/jenkins
+      systemctl start jenkins
+    fi
+  
+  # Enable and start Jenkins
+  - systemctl enable jenkins
+  - systemctl start jenkins
+  
+  # Configure firewall (if ufw is enabled)
+  - ufw allow 8080/tcp || true
+  
+  # Wait for Jenkins to start and get initial admin password
+  - |
+    sleep 30
+    if [ -f /var/lib/jenkins/secrets/initialAdminPassword ]; then
+      echo "Jenkins initial admin password:" > /home/${jenkins_admin_user}/jenkins-info.txt
+      cat /var/lib/jenkins/secrets/initialAdminPassword >> /home/${jenkins_admin_user}/jenkins-info.txt
+      chown ${jenkins_admin_user}:${jenkins_admin_user} /home/${jenkins_admin_user}/jenkins-info.txt
+    fi
+
+final_message: "Jenkins installation completed. The system will reboot in 1 minute."
+
+power_state:
+  delay: "+1"
+  mode: reboot
+  message: "Rebooting to ensure all services are properly started"
+  timeout: 30
+  condition: True

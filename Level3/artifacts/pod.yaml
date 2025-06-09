@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-pod
+  namespace: development
+  labels:
+    environment: development
+    app: demo
+    version: "1.0"
+  annotations:
+    description: "Demo pod with modern security practices"
+spec:
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: ubuntu
+    image: ubuntu:22.04
+    command: ["sleep", "3600"]
+    env:
+    - name: DEMO_ENV
+      value: "development"
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+        - ALL
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+    - name: var-tmp
+      mountPath: /var/tmp
+  volumes:
+  - name: tmp
+    emptyDir: {}
+  - name: var-tmp
+    emptyDir: {}
+  restartPolicy: Never

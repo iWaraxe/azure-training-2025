@@ -1,0 +1,26 @@
+# example of chart configuration 
+application:
+  name: BusinessCore
+  namespace: default
+  appConfigPath: C:\\inetpub\\wwwroot\\
+  appConfigName: Web.Config
+  healthcheck: 
+    enable: "yes"
+    path: "/"
+    port: http
+    scheme: HTTP
+    host: "-"
+image:
+  repository: crgopsacr.azurecr.io/consul
+  tag: 19.02.08.05
+
+deployment:
+  version: 0.0.0.0-0
+  
+imagePullSecrets:
+  name: crgopsacr
+
+log:
+  azureFileShareName: kubernetes-app-logs
+  azureFileShareSecretName: crgd3logstor01
+  localMountFolderName: /appLogs

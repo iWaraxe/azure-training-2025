@@ -1,0 +1,3 @@
+flask
+redis
+configparser>=3.5.0

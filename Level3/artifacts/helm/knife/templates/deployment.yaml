@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: knife
+  labels:
+    app: knife
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: knife
+  template:
+    metadata:
+      labels:
+        app: knife
+    spec:
+      containers:
+      - name: nginx
+        image: leodotcloud/swiss-army-knife:latest
+        ports:
+        - containerPort: 5100
+      nodeSelector:
+        beta.kubernetes.io/os: linux

@@ -1,0 +1,26 @@
+{{ $applicationName := .Values.application.name  }}
+{{ $namespace := .Values.application.namespace }}
+{{- range $scalingSettings := .Values.applicationScaling }}
+{{- if eq $scalingSettings.name $applicationName }}
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $applicationName }}
+  namespace: {{ $namespace }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $applicationName }}
+  minReplicas: {{ $scalingSettings.minReplica }}
+  maxReplicas: {{ $scalingSettings.maxReplica }}
+  metrics:
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 95
+{{- end }}
+---
+{{- end }}
